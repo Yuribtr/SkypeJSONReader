@@ -15,6 +15,9 @@ class PrintColors:
     UNDERLINE = '\033[4m'
 
 
+SUPPORTED_MSG_TYPES = ['RichText', 'Text']
+
+
 def strip_symbols(word: str):
     """
     Only for debugging purposes to clean special symbols.
@@ -53,9 +56,13 @@ def get_login_names(filename):
         file = json.load(file)
         conversations = file['conversations']
         for conversation in conversations:
+            msg_counter = 0
+            for message in conversation['MessageList']:
+                if message['messagetype'] in SUPPORTED_MSG_TYPES:
+                    msg_counter += 1
             result.add(f'{remove_prefixes(conversation["id"])}'
                        f'{"" if conversation["displayName"] is None else " [" + conversation["displayName"] + "]"}'
-                       f' - {len(conversation["MessageList"])}')
+                       f' - {msg_counter} messages')
     return result
 
 
@@ -73,18 +80,19 @@ def get_dialog_by_name(filename, person: str):
     last_msg_date = None
     with open(filename, 'r', encoding='utf-8') as file:
         file = json.load(file)
+        owner = remove_prefixes(file['userId'])
         items = file['conversations']
         for item in items:
             if remove_prefixes(item['id']) == person:
                 result = []
                 for message in item['MessageList']:
-                    if not message['messagetype'] in ['RichText', 'Text']:
+                    if not message['messagetype'] in SUPPORTED_MSG_TYPES:
                         continue
                     msg_date = datetime.fromtimestamp(int(message['id']) / 1000).strftime('%Y-%m-%d')
                     if last_msg_date != msg_date:
                         result += [f'\n---{last_msg_date}---']
                         last_msg_date = msg_date
-                    if remove_prefixes(message['from']) == person:
+                    if remove_prefixes(message['from']) != owner:
                         result += [f'{PrintColors.OKGREEN}↓  '
                                    f'{html.unescape(re.sub("<[^<]+?>", "", message["content"]))}{PrintColors.ENDC}']
                     else:
@@ -99,7 +107,7 @@ def get_dialog_by_name(filename, person: str):
 
 while True:
     print('\n1. Get chat history by login\n2. List all logins')
-    choice = input('Pls select your choice or print "q", and hit "Enter": ')
+    choice = input(f'{PrintColors.FAIL}Pls select your choice or print "q", and hit "Enter": {PrintColors.ENDC}')
     if choice == '1':
         person = input('Please enter Skype login to get conversation list: ')
         print(*get_dialog_by_name('messages.json', person=person), sep='\n')
