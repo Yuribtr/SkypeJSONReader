@@ -84,7 +84,7 @@ def get_dialog_by_name(filename, person: str):
                     if last_msg_date != msg_date:
                         result += [f'\n---{last_msg_date}---']
                         last_msg_date = msg_date
-                    if message['from'] == person:
+                    if remove_prefixes(message['from']) == person:
                         result += [f'{PrintColors.OKGREEN}↓  '
                                    f'{html.unescape(re.sub("<[^<]+?>", "", message["content"]))}{PrintColors.ENDC}']
                     else:
